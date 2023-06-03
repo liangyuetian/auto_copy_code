@@ -4,6 +4,9 @@ use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Editor, Result};
 use rustyline::history::DefaultHistory;
 use fs_extra;
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static COUNT: AtomicU32 = AtomicU32::new(0);
 
 fn main() -> Result<()> {
   let mut rl = DefaultEditor::new()?;
@@ -18,6 +21,7 @@ fn main() -> Result<()> {
 
 
   println!("拷贝完成");
+  println!("共拷贝{}个仓库", COUNT.load(Ordering::SeqCst));
   Ok(())
 }
 
@@ -58,6 +62,7 @@ fn find_repositories(source_path: &Path, target_path: &Path) {
         if let Ok(git_dir) = fs::metadata(source_path.join(".git")) {
           if git_dir.is_dir() {
             copy_git(&*source_path, &target_path.join(file_name.clone()));
+            COUNT.fetch_add(1, Ordering::SeqCst);
           }
         } else if !exclude_dir(file_name.to_str().unwrap()) {
           find_repositories(&source_path, &target_path.join(file_name.clone()))
